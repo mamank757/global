@@ -3,144 +3,350 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Peta Suhu Permukaan Global</title>
+    <title>Peta Suhu Permukaan Laut Global (SST)</title>
 
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Barlow+Condensed:wght@300;500;700&display=swap" rel="stylesheet">
 
     <style>
+        :root {
+            --bg: #05090f;
+            --panel-bg: rgba(6, 12, 24, 0.88);
+            --border: rgba(113, 247, 255, 0.15);
+            --accent: #71f7ff;
+            --accent2: #ff6b6b;
+            --text: rgba(220, 235, 255, 0.9);
+            --muted: rgba(170, 200, 220, 0.55);
+            --cold: #1a4fa3;
+            --cold2: #4fa3d4;
+            --neutral: #e8e8e0;
+            --warm2: #e87c5c;
+            --warm: #b01e2e;
+        }
+
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
         html, body {
-            margin: 0;
-            padding: 0;
-            width: 100%;
-            height: 100%;
+            width: 100%; height: 100%;
             overflow: hidden;
-            font-family: 'Segoe UI', sans-serif;
-            background: #060b13;
+            font-family: 'Barlow Condensed', sans-serif;
+            background: var(--bg);
         }
 
         #map {
-            width: 100%;
-            height: 100vh;
+            width: 100%; height: 100vh;
             z-index: 1;
         }
 
-        /* =========================
-           PANEL KONTROL (GLASSMORPHISM)
-        ========================= */
+        /* ── HEADER PANEL ── */
         .control-panel {
             position: absolute;
-            top: 20px;
+            top: 16px;
             left: 50%;
             transform: translateX(-50%);
             z-index: 1200;
-            background: rgba(8, 15, 30, 0.85);
-            backdrop-filter: blur(16px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            padding: 15px 25px;
-            border-radius: 12px;
-            color: white;
+            background: var(--panel-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--border);
+            padding: 14px 22px 16px;
+            border-radius: 14px;
+            color: var(--text);
             text-align: center;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
-            width: 90%;
-            max-width: 600px;
+            box-shadow: 0 8px 40px rgba(0,0,0,0.6), 0 0 0 1px rgba(113,247,255,0.05);
+            width: 92%;
+            max-width: 640px;
         }
 
         .panel-title {
-            font-size: 1.1rem;
-            font-weight: 700;
-            margin-bottom: 15px;
-            color: #71f7ff;
+            font-family: 'Barlow Condensed', sans-serif;
+            font-size: 0.78rem;
+            font-weight: 500;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            color: var(--accent);
+            margin-bottom: 3px;
+        }
+
+        .panel-subtitle {
+            font-family: 'Space Mono', monospace;
+            font-size: 0.65rem;
+            color: var(--muted);
+            margin-bottom: 13px;
             letter-spacing: 0.5px;
         }
 
+        /* ── TOMBOL ── */
         .btn-group {
             display: flex;
-            gap: 10px;
+            gap: 8px;
             justify-content: center;
             flex-wrap: wrap;
+            margin-bottom: 14px;
         }
 
-        /* Menggunakan tombol berbasis teks sesuai standar antarmuka */
         .action-btn {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            color: rgba(255, 255, 255, 0.9);
-            padding: 8px 16px;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.14);
+            color: var(--muted);
+            padding: 6px 15px;
             border-radius: 6px;
-            font-size: 0.85rem;
-            font-weight: 600;
+            font-family: 'Barlow Condensed', sans-serif;
+            font-size: 0.82rem;
+            font-weight: 700;
+            letter-spacing: 1px;
+            text-transform: uppercase;
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: all 0.25s ease;
         }
 
         .action-btn:hover {
-            background: rgba(255, 255, 255, 0.15);
+            background: rgba(113, 247, 255, 0.1);
+            border-color: var(--accent);
+            color: var(--accent);
         }
 
         .action-btn.active {
-            background: #0078ff;
-            border-color: #0078ff;
-            color: white;
-            box-shadow: 0 0 10px rgba(0, 120, 255, 0.5);
+            background: rgba(113, 247, 255, 0.18);
+            border-color: var(--accent);
+            color: var(--accent);
+            box-shadow: 0 0 14px rgba(113, 247, 255, 0.25);
         }
 
-        /* =========================
-           LEGENDA SKALA WARNA
-        ========================= */
-        .legend-container {
-            margin-top: 20px;
-            text-align: left;
+        .action-btn.active.warm {
+            background: rgba(255, 107, 107, 0.18);
+            border-color: var(--accent2);
+            color: var(--accent2);
+            box-shadow: 0 0 14px rgba(255, 107, 107, 0.25);
+        }
+
+        /* ── LEGENDA ── */
+        .legend-container { text-align: left; }
+
+        .legend-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-bottom: 6px;
         }
 
         .legend-title {
-            font-size: 0.75rem;
-            margin-bottom: 8px;
-            color: rgba(255, 255, 255, 0.7);
+            font-family: 'Barlow Condensed', sans-serif;
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            color: var(--muted);
+        }
+
+        .legend-source {
+            font-family: 'Space Mono', monospace;
+            font-size: 0.58rem;
+            color: rgba(113, 247, 255, 0.4);
+        }
+
+        .color-bar-wrap {
+            position: relative;
         }
 
         .color-bar {
             width: 100%;
-            height: 12px;
-            /* Gradien disesuaikan agar mirip dengan peta anomali laut (Biru - Putih - Merah) */
-            background: linear-gradient(to right, 
-                #1e6b8c 0%, 
-                #75a7b8 25%, 
-                #ffffff 50%, 
-                #dca3a3 75%, 
-                #ba1b2a 100%);
+            height: 14px;
             border-radius: 4px;
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255,255,255,0.1);
+            transition: background 0.5s ease;
+        }
+
+        /* Gradien SST anomali: Biru dingin → Putih netral → Merah panas */
+        .color-bar.sst-anomaly {
+            background: linear-gradient(to right,
+                #1a4fa3 0%,
+                #3b7ec8 18%,
+                #90c4e0 36%,
+                #d8eef5 45%,
+                #fffdf8 50%,
+                #f5d8c0 55%,
+                #e89060 72%,
+                #c83b3b 85%,
+                #7a0e1a 100%
+            );
+        }
+
+        /* Gradien SST absolut: Ungu → Biru → Hijau → Kuning → Merah */
+        .color-bar.sst-absolute {
+            background: linear-gradient(to right,
+                #3b0070 0%,
+                #1a4fa3 15%,
+                #2980c0 28%,
+                #35b0a0 40%,
+                #50c878 52%,
+                #f0d050 65%,
+                #e87830 78%,
+                #c02020 90%,
+                #6a0000 100%
+            );
+        }
+
+        /* Gradien tutupan awan */
+        .color-bar.cloud {
+            background: linear-gradient(to right,
+                rgba(20,30,50,0.1) 0%,
+                rgba(100,130,170,0.4) 40%,
+                rgba(200,215,230,0.85) 70%,
+                rgba(245,250,255,1) 100%
+            );
         }
 
         .scale-labels {
             display: flex;
             justify-content: space-between;
             margin-top: 5px;
-            font-size: 0.7rem;
-            color: rgba(255, 255, 255, 0.8);
-            font-weight: bold;
+            font-family: 'Space Mono', monospace;
+            font-size: 0.58rem;
+            color: rgba(200,220,235,0.7);
         }
 
+        /* ── STATUS BADGE ── */
+        .status-badge {
+            position: absolute;
+            bottom: 16px;
+            right: 16px;
+            z-index: 1200;
+            background: var(--panel-bg);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 8px 13px;
+            font-family: 'Space Mono', monospace;
+            font-size: 0.6rem;
+            color: var(--muted);
+            line-height: 1.7;
+        }
+
+        .status-dot {
+            display: inline-block;
+            width: 6px; height: 6px;
+            border-radius: 50%;
+            background: #4cff9f;
+            margin-right: 5px;
+            animation: pulse 2s infinite;
+            vertical-align: middle;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(1.4); }
+        }
+
+        /* ── LEAFLET OVERRIDE ── */
+        .leaflet-control-zoom {
+            border: 1px solid var(--border) !important;
+            border-radius: 8px !important;
+            overflow: hidden;
+        }
+        .leaflet-control-zoom a {
+            background: var(--panel-bg) !important;
+            backdrop-filter: blur(12px) !important;
+            color: var(--accent) !important;
+            border: none !important;
+            font-size: 16px !important;
+        }
+        .leaflet-control-zoom a:hover {
+            background: rgba(113,247,255,0.15) !important;
+        }
+
+        /* ── LOADING OVERLAY ── */
+        #loading-overlay {
+            position: absolute;
+            inset: 0;
+            z-index: 2000;
+            background: var(--bg);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            transition: opacity 0.6s ease;
+        }
+
+        #loading-overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .loader-title {
+            font-family: 'Barlow Condensed', sans-serif;
+            font-size: 1.1rem;
+            font-weight: 700;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            color: var(--accent);
+        }
+
+        .loader-bar {
+            width: 200px;
+            height: 2px;
+            background: rgba(255,255,255,0.08);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .loader-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(to right, var(--accent), var(--accent2));
+            border-radius: 2px;
+            animation: loadfill 1.5s ease forwards;
+        }
+
+        @keyframes loadfill {
+            to { width: 100%; }
+        }
+
+        .loader-sub {
+            font-family: 'Space Mono', monospace;
+            font-size: 0.6rem;
+            color: var(--muted);
+            letter-spacing: 1px;
+        }
     </style>
 </head>
 <body>
 
+    <!-- Loading screen -->
+    <div id="loading-overlay">
+        <div class="loader-title">SST Global</div>
+        <div class="loader-bar"><div class="loader-fill"></div></div>
+        <div class="loader-sub">Memuat data permukaan laut...</div>
+    </div>
+
+    <!-- Panel Kontrol -->
     <div class="control-panel">
-        <div class="panel-title">Peta Prakiraan Suhu Global</div>
-        
+        <div class="panel-title">Peta Suhu Permukaan Laut</div>
+        <div class="panel-subtitle" id="dateLabel">Sea Surface Temperature · NOAA/OWM</div>
+
         <div class="btn-group">
-            <button class="action-btn active" onclick="switchLayer('suhu', this)">Suhu Global</button>
-            <button class="action-btn" onclick="switchLayer('awan', this)">Tutupan Awan</button>
+            <button class="action-btn active" onclick="switchLayer('sst_anomaly', this)">Anomali SST</button>
+            <button class="action-btn" onclick="switchLayer('sst_absolute', this)">SST Absolut (OWM)</button>
+            <button class="action-btn" onclick="switchLayer('cloud', this)">Tutupan Awan</button>
         </div>
 
         <div class="legend-container">
-            <div class="legend-title" id="legendLabel">Perbedaan Suhu (°C)</div>
-            <div class="color-bar" id="colorBar"></div>
+            <div class="legend-header">
+                <div class="legend-title" id="legendLabel">Anomali Suhu Laut (°C dari rata-rata)</div>
+                <div class="legend-source" id="legendSource">NOAA CoralTemp</div>
+            </div>
+            <div class="color-bar-wrap">
+                <div class="color-bar sst-anomaly" id="colorBar"></div>
+            </div>
             <div class="scale-labels" id="scaleLabels">
-                <span>-4.0</span>
-                <span>-2.0</span>
-                <span>0.0</span>
+                <span>−4.0</span>
+                <span>−2.0</span>
+                <span>−0.5</span>
+                <span>0</span>
+                <span>+0.5</span>
                 <span>+2.0</span>
                 <span>+4.0</span>
             </div>
@@ -149,85 +355,157 @@
 
     <div id="map"></div>
 
+    <!-- Status badge -->
+    <div class="status-badge">
+        <span class="status-dot"></span>Live · <span id="layerStatus">Anomali SST</span><br>
+        Sumber: NOAA / OpenWeatherMap<br>
+        © BOM, NOAA, CartoDB
+    </div>
+
     <script>
-        // API Key OpenWeatherMap Anda
-        const owmApiKey = "a6da7e4d60b79f9bc5e5a35f7ccc5885"; 
+        const owmApiKey = "a6da7e4d60b79f9bc5e5a35f7ccc5885";
 
-        // Inisialisasi peta Leaflet dengan tampilan global (zoom out)
-        // Koordinat tengah diatur secara ekuatorial
-        const map = L.map('map', { 
+        // ── INISIALISASI PETA ──────────────────────────────────────
+        const map = L.map('map', {
             zoomControl: false,
-            worldCopyJump: true // Memastikan peta menyambung saat digeser terus ke samping
-        }).setView([0, 120], 3); 
+            worldCopyJump: true
+        }).setView([10, 130], 3);
 
-        L.control.zoom({ position: 'bottomright' }).addTo(map);
+        L.control.zoom({ position: 'bottomleft' }).addTo(map);
 
-        // Base Map Gelap
+        // Base map gelap tanpa label
         L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png', {
-            attribution: '© OpenStreetMap'
+            attribution: '© OpenStreetMap contributors, CartoDB',
+            maxZoom: 19
         }).addTo(map);
 
-        // Menyimpan layer agar mudah di-switch
-        let activeLayerName = 'suhu';
-        let weatherLayers = {};
+        // Label kota di atas layer cuaca (z-index tinggi)
+        const labelLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}{r}.png', {
+            attribution: '',
+            pane: 'overlayPane',
+            zIndex: 650
+        }).addTo(map);
 
-        // Layer Suhu (Temperature) dari OWM
-        weatherLayers['suhu'] = L.tileLayer(`https://tile.openweathermap.org/map/temp_new/{z}/{x}/{y}.png?appid=${owmApiKey}`, { 
-            opacity: 0.7,
-            maxZoom: 18
-        });
+        // ── DEFINISI LAYER ────────────────────────────────────────
 
-        // Layer Awan (Clouds) dari OWM sebagai pembanding
-        weatherLayers['awan'] = L.tileLayer(`https://tile.openweathermap.org/map/clouds_new/{z}/{x}/{y}.png?appid=${owmApiKey}`, { 
-            opacity: 0.6,
-            maxZoom: 18
-        });
-
-        // Tampilkan layer suhu secara default
-        weatherLayers['suhu'].addTo(map);
-
-        // Fungsi untuk mengganti layer dan menyesuaikan legenda
-        function switchLayer(mode, btnElement) {
-            // Hapus layer lama
-            if (weatherLayers[activeLayerName]) {
-                map.removeLayer(weatherLayers[activeLayerName]);
+        // 1. ANOMALI SST — NOAA CoralTemp via ERDDAP WMS
+        //    Dataset: NOAA_DHW (bleaching heat stress / SST anomaly)
+        //    Variabel: CRW_SST_ANOM, colorscale biru-putih-merah
+        const sstAnomalyLayer = L.tileLayer.wms(
+            "https://coastwatch.pfeg.noaa.gov/erddap/wms/NOAA_DHW/request", {
+                layers: "NOAA_DHW:CRW_SST_ANOM",
+                format: "image/png",
+                transparent: true,
+                version: "1.3.0",
+                styles: "rasterScaled/BlueWhiteRed",   // palette mirip BOM
+                colorscalerange: "-4,4",
+                belowmincolor: "extend",
+                abovemaxcolor: "extend",
+                opacity: 0.82,
+                attribution: "NOAA CoralWatch / ERDDAP"
             }
-            
-            // Tambahkan layer baru
-            activeLayerName = mode;
-            if (weatherLayers[mode]) {
-                weatherLayers[mode].addTo(map);
+        );
+
+        // 2. SST ABSOLUT — OpenWeatherMap (°C aktual permukaan)
+        const sstAbsoluteLayer = L.tileLayer(
+            `https://tile.openweathermap.org/map/temp_new/{z}/{x}/{y}.png?appid=${owmApiKey}`, {
+                opacity: 0.75,
+                attribution: "OpenWeatherMap"
             }
+        );
 
-            // Update status tombol
-            document.querySelectorAll('.action-btn').forEach(btn => btn.classList.remove('active'));
-            btnElement.classList.add('active');
-
-            // Update Legenda
-            const colorBar = document.getElementById('colorBar');
-            const scaleLabels = document.getElementById('scaleLabels');
-            const legendLabel = document.getElementById('legendLabel');
-
-            if (mode === 'suhu') {
-                legendLabel.innerText = "Skala Suhu Global (°C)";
-                colorBar.style.background = "linear-gradient(to right, #1e6b8c 0%, #75a7b8 25%, #ffffff 50%, #dca3a3 75%, #ba1b2a 100%)";
-                scaleLabels.innerHTML = `
-                    <span>Dingin</span>
-                    <span>Sejuk</span>
-                    <span>Normal</span>
-                    <span>Hangat</span>
-                    <span>Panas</span>
-                `;
-            } else if (mode === 'awan') {
-                legendLabel.innerText = "Intensitas Tutupan Awan (%)";
-                colorBar.style.background = "linear-gradient(to right, rgba(255,255,255,0) 0%, rgba(255,255,255,0.5) 50%, rgba(255,255,255,1) 100%)";
-                scaleLabels.innerHTML = `
-                    <span>0% (Cerah)</span>
-                    <span>50%</span>
-                    <span>100% (Tertutup)</span>
-                `;
+        // 3. TUTUPAN AWAN — OpenWeatherMap
+        const cloudLayer = L.tileLayer(
+            `https://tile.openweathermap.org/map/clouds_new/{z}/{x}/{y}.png?appid=${owmApiKey}`, {
+                opacity: 0.7,
+                attribution: "OpenWeatherMap"
             }
+        );
+
+        const layers = {
+            sst_anomaly: sstAnomalyLayer,
+            sst_absolute: sstAbsoluteLayer,
+            cloud: cloudLayer
+        };
+
+        let activeName = 'sst_anomaly';
+        sstAnomalyLayer.addTo(map);
+
+        // ── KONFIGURASI LEGENDA ────────────────────────────────────
+        const legendConfig = {
+            sst_anomaly: {
+                label: "Anomali Suhu Permukaan Laut (°C dari rata-rata 1985–2012)",
+                source: "NOAA CoralTemp / ERDDAP",
+                barClass: "sst-anomaly",
+                ticks: ["−4.0", "−2.0", "−0.5", "0", "+0.5", "+2.0", "+4.0"],
+                statusText: "Anomali SST (NOAA)"
+            },
+            sst_absolute: {
+                label: "Suhu Permukaan Laut Aktual (°C)",
+                source: "OpenWeatherMap",
+                barClass: "sst-absolute",
+                ticks: ["−2°C", "5°C", "12°C", "20°C", "27°C", "32°C", "38°C"],
+                statusText: "SST Absolut (OWM)"
+            },
+            cloud: {
+                label: "Intensitas Tutupan Awan (%)",
+                source: "OpenWeatherMap",
+                barClass: "cloud",
+                ticks: ["0%", "20%", "40%", "60%", "80%", "100%"],
+                statusText: "Tutupan Awan (OWM)"
+            }
+        };
+
+        // ── SWITCH LAYER ──────────────────────────────────────────
+        function switchLayer(mode, btnEl) {
+            if (layers[activeName]) map.removeLayer(layers[activeName]);
+            activeName = mode;
+            layers[mode].addTo(map);
+
+            // Pastikan label tetap di atas
+            labelLayer.bringToFront();
+
+            // Update tombol
+            document.querySelectorAll('.action-btn').forEach(b => {
+                b.classList.remove('active', 'warm');
+            });
+            btnEl.classList.add('active');
+            if (mode === 'sst_absolute') btnEl.classList.add('warm');
+
+            // Update legenda
+            const cfg = legendConfig[mode];
+            document.getElementById('legendLabel').innerText = cfg.label;
+            document.getElementById('legendSource').innerText = cfg.source;
+            document.getElementById('layerStatus').innerText = cfg.statusText;
+
+            const bar = document.getElementById('colorBar');
+            bar.className = `color-bar ${cfg.barClass}`;
+
+            const ticks = cfg.ticks;
+            document.getElementById('scaleLabels').innerHTML =
+                ticks.map(t => `<span>${t}</span>`).join('');
         }
+
+        // ── TANGGAL HARI INI ───────────────────────────────────────
+        const now = new Date();
+        const opts = { day: 'numeric', month: 'long', year: 'numeric' };
+        document.getElementById('dateLabel').innerText =
+            `Sea Surface Temperature · ${now.toLocaleDateString('id-ID', opts)}`;
+
+        // ── SEMBUNYIKAN LOADING ────────────────────────────────────
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                document.getElementById('loading-overlay').classList.add('hidden');
+            }, 1600);
+        });
+
+        // Fallback: jika ERDDAP lambat, tetap sembunyikan loading
+        sstAnomalyLayer.on('tileerror', () => {
+            document.getElementById('loading-overlay').classList.add('hidden');
+        });
+        sstAnomalyLayer.on('load', () => {
+            document.getElementById('loading-overlay').classList.add('hidden');
+        });
     </script>
 </body>
 </html>
