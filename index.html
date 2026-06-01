@@ -397,12 +397,21 @@
                 format: "image/png",
                 transparent: true,
                 version: "1.3.0",
-                styles: "rasterScaled/BlueWhiteRed",   // palette mirip BOM
+                styles: "rasterScaled/BlueWhiteRed",
                 colorscalerange: "-4,4",
                 belowmincolor: "extend",
                 abovemaxcolor: "extend",
                 opacity: 0.82,
-                attribution: "NOAA CoralWatch / ERDDAP"
+                attribution: "NOAA CoralWatch / ERDDAP",
+                tileSize: 512,
+                zoomOffset: -1,
+                time: "last",
+
+                // --- HACKS LEAFLET UNTUK SERVER LAMBAT ---
+                updateWhenIdle: true,       // HANYA memuat gambar saat kursor dilepas (berhenti menggeser)
+                updateWhenZooming: false,   // JANGAN memuat gambar di tengah-tengah animasi zoom
+                updateInterval: 500,        // Beri jeda 500ms sebelum Leaflet menembak request gambar baru
+                keepBuffer: 3               // Simpan memori cache peta (buffer) lebih luas di luar layar
             }
         );
 
@@ -493,18 +502,34 @@
             `Sea Surface Temperature · ${now.toLocaleDateString('id-ID', opts)}`;
 
         // ── SEMBUNYIKAN LOADING ────────────────────────────────────
-        window.addEventListener('load', () => {
-            setTimeout(() => {
-                document.getElementById('loading-overlay').classList.add('hidden');
-            }, 1600);
+        // ── LOGIKA LOADING SCREEN PINTAR ─────────────────────────────
+        const loadingOverlay = document.getElementById('loading-overlay');
+        let initialLoad = true;
+
+        // Munculkan loading jika map sedang memuat ulang WMS saat digeser jauh
+        sstAnomalyLayer.on('loading', () => {
+            if(!initialLoad) {
+                // Opsional: jika ingin menampilkan loading kecil di pojok bisa ditambahkan di sini
+            }
         });
 
-        // Fallback: jika ERDDAP lambat, tetap sembunyikan loading
-        sstAnomalyLayer.on('tileerror', () => {
-            document.getElementById('loading-overlay').classList.add('hidden');
-        });
+        // Sembunyikan loading HANYA KETIKA gambar dari NOAA sudah benar-benar selesai diunduh
         sstAnomalyLayer.on('load', () => {
-            document.getElementById('loading-overlay').classList.add('hidden');
+            loadingOverlay.classList.add('hidden');
+            initialLoad = false;
+        });
+
+        // Jika koneksi timeout / error, tetap sembunyikan loading agar user bisa ganti layer
+        sstAnomalyLayer.on('tileerror', () => {
+            loadingOverlay.classList.add('hidden');
+            console.warn("Beberapa tile gagal dimuat dari server NOAA.");
+        });
+
+        // Fallback darurat: Jika server NOAA mati total, hilangkan loading dalam 10 detik
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                if(initialLoad) loadingOverlay.classList.add('hidden');
+            }, 10000); 
         });
     </script>
 </body>
